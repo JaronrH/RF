@@ -1,0 +1,165 @@
+{% extends "layout.html" %}
+{% block head %}
+    <link rel="stylesheet" href="/static/content/paper-collapse.min.css">
+{% endblock %}
+{% block content %}
+
+<br/>
+
+<div class="animated slideInDown">
+    <h1>Job Scheduler</h1>
+    <hr/>
+</div>
+<div class="row">
+    <div class="animated slideInDown col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-table fa-fw"></i> History
+            </div>
+            <div class="panel-body">
+                <table id="jobsTable" class="display" cellspacing="0" width="100%">
+                    <thead>
+                        <tr>
+                            <th style="width: 36px;"></th>
+                            <th>ID</th>
+                            <th>Calling</th>
+                            <th>Trigger</th>
+                            <th>Next Run</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/scripts/paper-collapse.min.js"></script>
+<script src="/static/scripts/jquery.dataTables.min.js"></script>
+<script src="/static/scripts/dataTables.bootstrap.min.js"></script>
+<script src="/static/scripts/dataTables.responsive.min.js"></script>
+<script type="text/javascript" charset="utf-8">
+    $(document).ready(function () {
+        $('#jobsTable').dataTable({
+            "bProcessing": true,
+            "order": [[ 1, "desc" ]],
+            "responsive": true,
+            "aoColumns": [
+              { bSortable: false },
+              null,
+              { bSortable: false },
+              null,
+              null
+            ],
+            "ajax": {
+                "url": '{{url_for('get_jobs')}}',
+                "dataSrc": function ( json ) {
+                  data = [];
+                  for ( var i=0, ien=json.length ; i<ien ; i++ ) {
+                    buttons = '<div class="dropdown"><button class="btn btn-primary dropdown-toggle btn-xs" type="button" data-toggle="dropdown"><i class="fa fa-ge"></i> <span class="caret"></span></button><ul class="dropdown-menu">'
+                    buttons = buttons+'<li><a data-id="'+json[i].id+'" class="btn-run">Run Now</a></li>';
+                    if (json[i].next_run_time == 'None')
+                        buttons = buttons+'<li><a data-id="'+json[i].id+'" class="btn-resumes">Resume</a></li>';
+                    else
+                        buttons = buttons+'<li><a data-id="'+json[i].id+'" class="btn-pause">Pause</a></li>';
+                    buttons = buttons+'<li><a data-id="'+json[i].id+'" class="btn-remove">Remove</a></li>';
+                    data.push(
+                        [ 
+                            buttons+'</ul></div>',
+                            json[i].id, 
+                            json[i].func+'(*args='+json[i].args+',**kwargs='+JSON.stringify(json[i].kwargs)+')', 
+                            json[i].trigger, 
+                            json[i].next_run_time
+                        ]);
+                  }
+                  return data;
+                }
+            },
+            "fnInitComplete": function() {
+                $('.btn-run').on('click', function(){
+                    bootbox.confirm('Are you sure you want to run this job now?', function(result) {
+                        if (result) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: 'json',
+                                data: JSON.stringify({
+                                    job_id: $(this).data('id')
+                                }),
+                                url: '{{url_for('JobController:runJob')}}'
+                            })
+                            .success(function() {
+                                window.location.reload();
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to manually run job.');
+                            });
+                        }
+                    }.bind(this));
+                });
+                $('.btn-resume').on('click', function(){
+                    bootbox.confirm('Are you sure you want to resume this job?', function(result) {
+                        if (result) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: 'json',
+                                data: JSON.stringify({
+                                    job_id: $(this).data('id')
+                                }),
+                                url: '{{url_for('JobController:resumeJob')}}'
+                            })
+                            .success(function() {
+                                window.location.reload();
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to resume job.');
+                            });
+                        }
+                    }.bind(this));
+                });
+                $('.btn-pause').on('click', function(){
+                    bootbox.confirm('Are you sure you want to pause this job?', function(result) {
+                        if (result) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: 'json',
+                                data: JSON.stringify({
+                                    job_id: $(this).data('id')
+                                }),
+                                url: '{{url_for('JobController:pauseJob')}}'
+                            })
+                            .success(function() {
+                                window.location.reload();
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to pause job.');
+                            });
+                        }
+                    }.bind(this));
+                });
+                $('.btn-remove').on('click', function(){
+                    bootbox.confirm('Are you sure you want to remove this job?', function(result) {
+                        if (result) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: 'json',
+                                data: JSON.stringify({
+                                    job_id: $(this).data('id')
+                                }),
+                                url: '{{url_for('JobController:removeJob')}}'
+                            })
+                            .success(function() {
+                                window.location.reload();
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to remove job.');
+                            });
+                        }
+                    }.bind(this));
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

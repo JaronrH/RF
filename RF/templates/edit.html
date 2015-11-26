@@ -1,0 +1,457 @@
+{% extends "layout.html" %}
+{% macro padMinutes(min) %}{% if min|length < 2 %}0{{min}}{% else %}{{min}}{% endif %}{% endmacro %}
+{% block head %}
+    <link rel="stylesheet" href="/static/content/fontawesome-iconpicker.min.css">
+{% endblock %}
+{% block content %}
+
+<br/>
+
+<div class="animated slideInDown">
+    <h1><i class="{{button.icon}} fa-2x"></i> {{button.name}}</h1>
+    <button type="button" class="manage btn btn-default btn-xs" aria-expanded="true" data-toggle="tooltip" data-placement="bottom" title="" data-original-title="Manage Configuration"><i class="fa fa-arrow-left fa-fw"></i></button>
+    <button type="button" class="btn btn-primary btn-icon btn-xs"><i class="{{button.icon}}"></i> Change Icon</button>
+    <button type="button" class="btn btn-primary btn-rename btn-xs"><i class="fa fa-edit"></i> Rename</button>
+    <hr/>
+</div>
+<div class="row">
+    <div class="animated slideInDown col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-table fa-fw"></i> Commands
+            </div>
+            <div class="panel-body table-responsive">
+                <table id="buttonsTable" class="display table" cellspacing="0" width="100%">
+                    <thead>
+                        <tr>
+                            <th style="width: 36px;"></th>
+                            <th>Name</th>
+                            <th>Codes</th>
+                        </tr>
+                    </thead>
+                </table>
+                <button type="button" class="btn btn-success btn-new"><i class="fa fa-edit"></i> Create New Command</button>
+                <br/><br/>
+                <button type="button" class="btn btn-warning btn-recent"><i class="fa fa-history"></i> Recent Codes</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="animated slideInDown col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-adjust fa-fw"></i> AutoLight
+            </div>
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>AutoLight Function</th>
+                                <th>Command</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>On/Enable</strong><br/><small>After {{autolightConfig['enablehour']}}:{{padMinutes(autolightConfig['enablemin'])}} and {{autolightConfig['sensorname']}} < {{autolightConfig['luxlimit']}} lux</small></td>
+                                <td>
+                                    {% if button.autolight.enable %}
+                                        <span class="text-{{button.autolight['enable'].style}}">{{button.autolight['enable'].name}}</span>
+                                    {% else %}
+                                        n/a
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Off/Disable</strong><br/><small>At {{autolightConfig['disablehour']}}:{{padMinutes(autolightConfig['disablemin'])}}</small></td>
+                                <td>
+                                    {% if button.autolight.disable  %}
+                                        <span class="text-{{button.autolight['disable'].style}}">{{button.autolight['disable'].name}}</span>
+                                    {% else %}
+                                        n/a
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/scripts/fontawesome-iconpicker.min.js"></script>
+<script src="/static/scripts/jquery.dataTables.min.js"></script>
+<script src="/static/scripts/dataTables.bootstrap.min.js"></script>
+<script type="text/javascript" charset="utf-8">
+    $(document).ready(function () {
+        $('#buttonsTable').dataTable({
+            "bProcessing": true,
+            "sDom": '<"top"i>rt<"bottom"p><"clear">',
+            "order": [[ 1, "desc" ]],
+            "aoColumns": [
+              { bSortable: false },
+              null,
+              { bSortable: false }
+            ],
+            "ajax": {
+                "url": '{{url_for('DataController:button', button_ref=button.id)}}',
+                "dataSrc": function ( json ) {
+                  data = [];
+                  for ( var i=0, ien=json.commands.length ; i<ien ; i++ ) {
+                    buttons = '<div class="dropdown"><button class="btn btn-primary dropdown-toggle btn-xs" type="button" data-toggle="dropdown"><i class="fa fa-ge"></i> <span class="caret"></span></button><ul class="dropdown-menu">'
+                    buttons = buttons+'<li><a data-id="'+json.commands[i].id+'" class="btn-runCommand">Run</a></li>';
+                    buttons = buttons+'<li><a data-id="'+json.commands[i].id+'" class="btn-renameCommand">Rename</a></li>';
+                    buttons = buttons+'<li><a data-id="'+json.commands[i].id+'" data-style="'+json.commands[i].style+'" class="btn-styleCommand">Change Style</a></li>';
+                    buttons = buttons+'<li><a data-id="'+json.commands[i].id+'" class="btn-removeCommand">Remove</a></li>';
+                    if (json.autolight.enable == null || json.commands[i].id != json.autolight.enable.id || json.autolight.disable == null || json.commands[i].id != json.autolight.disable.id)
+                        buttons = buttons+'<li role="separator" class="divider"></li>';
+                        if (json.autolight.enable == null || json.commands[i].id != json.autolight.enable.id)
+                            buttons = buttons+'<li><a data-id="'+json.commands[i].id+'" class="btn-autolight-enable-set">Set as Autolight Enable</a></li>';
+                        else
+                            buttons = buttons+'<li><a data-id="'+json.commands[i].id+'" class="btn-autolight-enable-remove">Remove as Autolight Enable</a></li>';
+                        if (json.autolight.disable == null || json.commands[i].id != json.autolight.disable.id)
+                            buttons = buttons+'<li><a data-id="'+json.commands[i].id+'" class="btn-autolight-disable-set">Set as Autolight Disable</a></li>';                    
+                        else
+                            buttons = buttons+'<li><a data-id="'+json.commands[i].id+'" class="btn-autolight-disable-remove">Remove as Autolight Disable</a></li>';                    
+                    codes = ''
+                    for ( var j=0, jen=json.commands[i].codes.length ; j<jen ; j++ ) {
+                        codes = codes+'<li style="padding-bottom: 2px;">'+json.commands[i].codes[j]+' <button data-id="'+json.commands[i].id+'" data-code="'+json.commands[i].codes[j]+'" class="btn btn-primary btn-xs btn-sendCode"><i class="fa fa-play fa-fw"></i></button> <button data-id="'+json.commands[i].id+'" data-code="'+json.commands[i].codes[j]+'" class="btn btn-danger btn-xs btn-removeCode"><i class="fa fa-trash-o fa-fw"></i></button></li>';
+                    }
+                    codes = codes+'<button data-id="'+json.commands[i].id+'" class="btn btn-success btn-xs btn-addCode">Add Command</button>';
+                    data.push(
+                        [
+                            buttons+'</ul></div>',
+                            '<span  class="text-'+json.commands[i].style+' btn-xs">'+json.commands[i].name+'</span>',
+                            codes
+                        ]);
+                  }
+                  return data;
+                }
+            },
+            "fnInitComplete": function() {
+                $('.btn-runCommand').on('click', function(){
+                    bootbox.confirm("Run this command now?", function(result) {                
+                        if (result) {
+                            $.ajax({
+                            type: "POST",
+                                dataType: 'json',
+                                data: JSON.stringify({
+                                    name: result
+                                }),
+                                url: '/button/{{button.id}}/'+$(this).data('id')
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to run command.');
+                            });
+                        }
+                    }.bind(this));
+                });
+                $('.btn-renameCommand').on('click', function(){
+                    bootbox.prompt("What would you like to rename this command to?", function(result) {                
+                        if (result !== null) {
+                            $.ajax({
+                            type: "POST",
+                                dataType: 'json',
+                                data: JSON.stringify({
+                                    name: result
+                                }),
+                                url: '/manage/buttons/{{button.id}}/command/'+$(this).data('id')+'/rename'
+                            })
+                            .success(function(json) {
+                                window.location.reload();
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to rename command.');
+                            });
+                        }
+                    }.bind(this));
+                });
+                $('.btn-styleCommand').on('click', function(){
+                    bootbox.dialog({
+                        title: 'Select style',
+                        message:  '<div class="form-group">'
+                             +'    <div class="radio">'
+                             +'        <label>'
+                             +'            <input type="radio" name="style" value="primary"><span class="text-primary">Blue</span>'
+                             +'        </label>'
+                             +'    </div>'
+                             +'    <div class="radio">'
+                             +'        <label>'
+                             +'            <input type="radio" name="style" value="success"><span class="text-success">Green</span>'
+                             +'        </label>'
+                             +'    </div>'
+                             +'    <div class="radio">'
+                             +'        <label>'
+                             +'            <input type="radio" name="style" value="warning"><span class="text-warning">Yellow</span>'
+                             +'        </label>'
+                             +'    </div>'
+                             +'    <div class="radio">'
+                             +'        <label>'
+                             +'            <input type="radio" name="style" value="danger"><span class="text-danger">Red</span>'
+                             +'        </label>'
+                             +'    </div>'
+                             +'</div>',
+                        buttons: {
+                            cancel: {
+                              label: "Cancel",
+                              className: "btn-default",
+                              callback: function() {}
+                            },
+                            ok: {
+                              label: "OK",
+                              className: "btn-primary",
+                              callback: function() {
+                                  $.ajax({
+                                      type: "POST",
+                                      dataType: 'json',
+                                      data: JSON.stringify({
+                                          style: $("input:radio[name ='style']:checked").val()
+                                      }),
+                                      url: '/manage/buttons/{{button.id}}/command/'+$(this).data('id')+'/style'
+                                  })
+                                  .success(function(json) {
+                                      window.location.reload();
+                                  })
+                                  .fail(function () {
+                                      bootbox.alert("Unable to change command's style.");
+                                  });
+                              }.bind(this)
+                            }
+                        }
+                    });
+                    $("input:radio[name ='style'][value='"+$(this).data('style')+"']").prop('checked', true)
+                });
+                $('.btn-removeCommand').on('click', function(){
+                    bootbox.confirm('Are you sure you want to remove this command?', function(result) {
+                        if (result) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: 'json',
+                                url: '/manage/buttons/{{button.id}}/command/'+$(this).data('id')+'/remove'
+                            })
+                            .success(function() {
+                                window.location.reload();
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to remove command.');
+                            });
+                        }
+                    }.bind(this));
+                });
+                $('.btn-autolight-enable-set').on('click', function(){
+                    bootbox.confirm('Are you sure you want to set this as the Autolight Enable command?', function(result) {
+                        if (result) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: 'json',
+                                url: '/manage/buttons/{{button.id}}/command/'+$(this).data('id')+'/autolight/enable/set'
+                            })
+                            .success(function() {
+                                window.location.reload();
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to set Autolight Enable command.');
+                            });
+                        }
+                    }.bind(this));
+                });
+                $('.btn-autolight-disable-set').on('click', function(){
+                    bootbox.confirm('Are you sure you want to set this as the Autolight Disable command?', function(result) {
+                        if (result) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: 'json',
+                                url: '/manage/buttons/{{button.id}}/command/'+$(this).data('id')+'/autolight/disable/set'
+                            })
+                            .success(function() {
+                                window.location.reload();
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to set Autolight Disable command.');
+                            });
+                        }
+                    }.bind(this));
+                });
+                $('.btn-autolight-enable-remove').on('click', function(){
+                    bootbox.confirm('Are you sure you want to remove this as the Autolight Enable command?', function(result) {
+                        if (result) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: 'json',
+                                url: '/manage/buttons/{{button.id}}/command/'+$(this).data('id')+'/autolight/enable/remove'
+                            })
+                            .success(function() {
+                                window.location.reload();
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to remove Autolight Enable command.');
+                            });
+                        }
+                    }.bind(this));
+                });
+                $('.btn-autolight-disable-remove').on('click', function(){
+                    bootbox.confirm('Are you sure you want to remove this as the Autolight Disable command?', function(result) {
+                        if (result) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: 'json',
+                                url: '/manage/buttons/{{button.id}}/command/'+$(this).data('id')+'/autolight/disable/remove'
+                            })
+                            .success(function() {
+                                window.location.reload();
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to remove Autolight Disable command.');
+                            });
+                        }
+                    }.bind(this));
+                });
+                $('.btn-addCode').on('click', function(){
+                    bootbox.prompt("Please enter the code you would like to add?", function(result) {                
+                        if (result !== null) {
+                            $.ajax({
+                            type: "POST",
+                                dataType: 'json',
+                                data: JSON.stringify({
+                                    code: result
+                                }),
+                                url: '/manage/buttons/{{button.id}}/command/'+$(this).data('id')+'/code/add'
+                            })
+                            .success(function(json) {
+                                window.location.reload();
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to add code to command.');
+                            });
+                        }
+                    }.bind(this));
+                });
+                $('.btn-sendCode').on('click', function(){
+                    bootbox.confirm("Are you sure you want to send this code?", function(result) {                
+                        if (result) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: 'json',
+                                url: '/code/'+$(this).data('code')+'/send'
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to send code.');
+                            });
+                        }
+                    }.bind(this));
+                });
+                $('.btn-removeCode').on('click', function(){
+                    bootbox.confirm("Are you sure you want to remove this code?", function(result) {                
+                        if (result) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: 'json',
+                                url: '/manage/buttons/{{button.id}}/command/'+$(this).data('id')+'/code/'+$(this).data('code')+'/remove'
+                            })
+                            .success(function(json) {
+                                window.location.reload();
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to remove code from command.');
+                            });
+                        }
+                    }.bind(this));
+                });
+            }
+        });
+        
+        $('.btn-new').on('click', function(){
+            bootbox.prompt("What would you like to name the new button?", function(result) {                
+                if (result !== null) {
+                    $.ajax({
+                        type: "POST",
+                        dataType: 'json',
+                        data: JSON.stringify({
+                            name: result,
+                            visible: false
+                        }),
+                        url: '/manage/buttons/{{button.id}}/command/add'
+                    })
+                    .success(function(json) {
+                                window.location.reload();
+                    })
+                    .fail(function () {
+                        bootbox.alert('Unable to create new command.');
+                    });
+                }
+            });
+        });
+        $('.btn-rename').on('click', function(){
+            bootbox.prompt("What would you like to rename this button to?", function(result) {                
+                if (result !== null) {
+                    $.ajax({
+                        type: "POST",
+                        dataType: 'json',
+                        data: JSON.stringify({
+                            name: result
+                        }),
+                        url: '{{url_for('ManageController:renameButton', button_id=button.id)}}'
+                    })
+                    .success(function(json) {
+                        window.location.reload();
+                    })
+                    .fail(function () {
+                        bootbox.alert('Unable to rename button.');
+                    });
+                }
+            });
+        });        
+        $('.btn-icon').on('click', function(){
+            bootbox.dialog({
+                        title: 'Select New Icon',
+                        message: '<div class="form-group">'
+                                +'<label>Select New Icon</label>'
+                                +'  <div class="input-group" style="width: 100px">'
+                                +'    <input id="modelIconInput" style="width: 180px" data-placement="bottomLeft" class="form-control icp icp-auto" value="{{button.icon[3:]}}" type="text"/>'
+                                +'    <span class="input-group-addon"></span>'
+                                +'  </div>'     
+                                +'</div>',
+                        buttons: {
+                                cancel: {
+                                  label: "Cancel",
+                                  className: "btn-default",
+                                  callback: function() {}
+                                },
+                                ok: {
+                                  label: "OK",
+                                  className: "btn-primary",
+                                  callback: function() {
+                                      $.ajax({
+                                          type: "POST",
+                                          dataType: 'json',
+                                          data: JSON.stringify({
+                                              icon: 'fa '+$('#modelIconInput').val()
+                                          }),
+                                          url: '{{url_for('ManageController:updateIcon', button_id=button.id)}}'
+                                      })
+                                      .success(function(json) {
+                                          window.location.reload();
+                                      })
+                                      .fail(function () {
+                                          bootbox.alert("Unable to change button's icon.");
+                                      });
+                                  }
+                                }
+                            }
+                    });
+            $('.icp-auto').iconpicker();
+        });
+        $('.manage').on('click', function() {
+            window.location.href = "{{url_for('ManageController:index')}}";
+        });
+        $('.btn-recent').on('click', function() {
+            window.location.href = "{{url_for('SnifferController:index')}}";
+        });
+    });
+</script>
+{% endblock %}

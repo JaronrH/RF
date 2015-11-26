@@ -1,0 +1,2 @@
+﻿web = None
+db = None

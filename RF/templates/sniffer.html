@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<br/>
+
+<div class="row">
+    <div class="animated slideInDown col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-table fa-fw"></i> History
+            </div>
+            <div class="panel-body">
+                <table class="table hover" id="records">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px"></th>
+                            <th>Code</th>
+                            <th>Date/Time</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="/static/scripts/jquery.dataTables.min.js"></script>
+<script src="/static/scripts/dataTables.bootstrap.min.js"></script>
+<script src="/static/scripts/dataTables.responsive.min.js"></script>
+<script type="text/javascript" charset="utf-8">
+    $(document).ready(function () {
+        $('#records').dataTable({
+            "responsive": true,
+            "bProcessing": true,
+            "bServerSide": true,
+            "bFilter": false,
+            "aaSorting": [[2, 'desc']],
+            "aoColumns": [
+                  { bSortable: false },
+                  null,
+                  null
+                ],
+            "sAjaxSource": "{{ url_for('SnifferController:data') }}",
+            "fnDrawCallback": function(){
+                $('.btn-lookupCode').on('click', function(){
+                    $.ajax({
+                        type: "GET",
+                        dataType: 'json',
+                        url: '/data/lookup/code/'+$(this).data('code')
+                    })
+                    .success(function(json) {
+                        if (json.length == 0)
+                            bootbox.alert('No existing commands found for this code.')
+                        else {
+                            msg = '<ul>';
+                            for ( var i=0, ien=json.length ; i<ien ; i++ ) {
+                                msg = msg + '<li><i class="'+json[i].button.icon+' fa-fw"></i>Button: <a href="/manage/buttons/'+json[i].button.id+'/edit"><strong>'+json[i].button.name+'</strong></a>; Command: <strong class="text-'+json[i].command.style+'">'+json[i].command.name+'</strong></li>';
+                            }
+                            msg = msg + '</ul>';
+                            bootbox.dialog({
+                                title: 'Code Lookup: '+$(this).data('code'),
+                                message:  msg,
+                                buttons: {
+                                    ok: {
+                                      label: "OK",
+                                      className: "btn-primary"
+                                    }
+                                }
+                            });
+                        }
+                    }.bind(this))
+                    .fail(function () {
+                        bootbox.alert("Unable to lookup code "+$(this).data('code')+".");
+                    }.bind(this));
+                });
+             }
+        });
+    });
+</script>
+{% endblock %}

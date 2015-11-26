@@ -1,0 +1,185 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<br/>
+
+<div class="animated slideInDown">
+    <h1>Manage</h1>
+    <hr/>
+</div>
+<div class="row">
+    <div class="animated slideInDown col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="fa fa-table fa-fw"></i> Buttons
+            </div>
+            <div class="panel-body">
+                <table id="buttonsTable" class="display" cellspacing="0" width="100%">
+                    <thead>
+                        <tr>
+                            <th style="width: 36px;"></th>
+                            <th>Name</th>
+                        </tr>
+                    </thead>
+                </table>
+                <button type="button" class="btn btn-success btn-new"><i class="fa fa-edit"></i> Create New Button</button>
+                <br/>
+                <br/>
+                <button type="button" class="btn btn-warning btn-new-remote"><i class="fa fa-rss"></i> Create New Button (from Remote)</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/scripts/jquery.dataTables.min.js"></script>
+<script src="/static/scripts/dataTables.bootstrap.min.js"></script>
+<script src="/static/scripts/dataTables.responsive.min.js"></script>
+<script type="text/javascript" charset="utf-8">
+    $(document).ready(function () {
+        $('#buttonsTable').dataTable({
+            "bProcessing": true,
+            "responsive": true,
+            "sDom": '<"top"i>rt<"bottom"p><"clear">',
+            "order": [[ 1, "desc" ]],
+            "aoColumns": [
+              { bSortable: false },
+              null
+            ],
+            "ajax": {
+                "url": '{{url_for('DataController:buttons')}}',
+                "dataSrc": function ( json ) {
+                  data = [];
+                  for ( var i=0, ien=json.length ; i<ien ; i++ ) {
+                    buttons = '<div class="dropdown"><button class="btn btn-primary dropdown-toggle btn-xs" type="button" data-toggle="dropdown"><i class="fa fa-ge"></i> <span class="caret"></span></button><ul class="dropdown-menu">'
+                    buttons = buttons+'<li><a data-id="'+json[i].id+'" class="btn-edit">Edit</a></li>';
+                    if (json[i].visible)
+                       buttons = buttons+'<li><a data-id="'+json[i].id+'" class="btn-hide">Hide</a></li>';
+                    else
+                        buttons = buttons+'<li><a data-id="'+json[i].id+'" class="btn-show">Show</a></li>';
+                    buttons = buttons+'<li><a data-id="'+json[i].id+'" class="btn-remove">Remove</a></li>';
+                    data.push(
+                        [
+                            buttons+'</ul></div>',
+                            '<i class="'+json[i].icon+'"></i> '+json[i].name
+                        ]);
+                  }
+                  return data;
+                }
+            },
+            "fnInitComplete": function() {
+                $('.btn-edit').on('click', function(){
+                    window.location.href = '/manage/buttons/'+$(this).data('id')+'/edit';
+                });
+                $('.btn-remove').on('click', function(){
+                    bootbox.confirm('Are you sure you want to remove this button?', function(result) {
+                        if (result) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: 'json',
+                                url: '/manage/buttons/'+$(this).data('id')+'/remove'
+                            })
+                            .success(function() {
+                                window.location.reload();
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to remove button.');
+                            });
+                        }
+                    }.bind(this));
+                });
+                $('.btn-hide').on('click', function(){
+                    bootbox.confirm('Are you sure you want to hide this button?', function(result) {
+                        if (result) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: 'json',
+                                url: '/manage/buttons/'+$(this).data('id')+'/hide'
+                            })
+                            .success(function() {
+                                window.location.reload();
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to hide button.');
+                            });
+                        }
+                    }.bind(this));
+                });
+                $('.btn-show').on('click', function(){
+                    bootbox.confirm('Are you sure you want to show this button?', function(result) {
+                        if (result) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: 'json',
+                                url: '/manage/buttons/'+$(this).data('id')+'/show'
+                            })
+                            .success(function() {
+                                window.location.reload();
+                            })
+                            .fail(function () {
+                                bootbox.alert('Unable to show button.');
+                            });
+                        }
+                    }.bind(this));
+                });
+            }
+        });
+        
+        
+        $('.btn-new').on('click', function(){
+            bootbox.prompt("What would you like to name the new button?", function(result) {                
+                if (result !== null) {
+                    $.ajax({
+                        type: "POST",
+                        dataType: 'json',
+                        data: JSON.stringify({
+                            name: result,
+                            visible: false
+                        }),
+                        url: '/manage/buttons/add'
+                    })
+                    .success(function(json) {
+                        window.location.href = '/manage/buttons/'+json.id+'/edit'
+                    })
+                    .fail(function () {
+                        bootbox.alert('Unable to create new button.');
+                    });
+                }
+            });
+        });
+        $('.btn-new-remote').on('click', function(){
+            bootbox.prompt("What would you like to name the new button?", function(result) {
+                if (result !== null) {               
+                    bootbox.dialog({
+                        message: '<div style="width: 100%;" class="text-center">'
+                               + '    <p>'
+                               +  '        <h2><img src="{{ url_for('static', filename='images/ajax-loader.gif') }}" />Press Button on Remote...</h2>'
+                               +  '    </p>'
+                               +  '</div>',
+                        closeButton: false
+                    });
+                    $.ajax({
+                        type: "POST",
+                        dataType: 'json',
+                        data: JSON.stringify({
+                            name: result,
+                            visible: false
+                        }),
+                        url: '/manage/buttons/remote_add'
+                    })
+                    .success(function(json) {
+                        bootbox.hideAll();
+                        window.location.href = '/manage/buttons/'+json.id+'/edit'
+                    })
+                    .fail(function () {
+                        bootbox.hideAll();
+                        bootbox.alert('Unable to create new button.');
+                    });
+                }
+            });
+        });  
+    });
+</script>
+{% endblock %}

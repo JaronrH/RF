@@ -1,0 +1,482 @@
+{% extends "layout.html" %}
+{% block head %}
+    <link rel="stylesheet" href="/static/content/paper-collapse.min.css">
+    <link rel="stylesheet" href="/static/content/bootstrap-clockpicker.min.css">
+    <link rel="stylesheet" href="/static/content/roundslider.min.css">
+    <style>
+    .hm_container {
+        height: 210px; 
+        width: 240px;
+    }
+    
+    .hm_container .hours {
+        position: absolute;
+    }
+    
+    .hm_container .mins {
+        padding: 30px;
+        position: absolute;
+    }
+    
+    .hm_container .display {
+        width: 120px; 
+        margin: 0 60px; 
+        text-align: center; 
+        position: relative; 
+        z-index: 11; 
+        top: 110px; 
+        font-size: 10pt
+    }
+    
+    .hm_dialog .modal-dialog {
+        width: 300px;
+    }
+    </style>
+{% endblock %}
+{% block content %}
+
+<br/>
+
+<div class="animated slideInDown">
+    <h1>Power Management</h1>
+    <div class="pull-left toolbar">
+        <button type="button" class="manage btn btn-default btn-xs" aria-expanded="true" data-toggle="tooltip" data-placement="bottom" title="" data-original-title="Manage Configuration">
+            <i class="fa fa-gear fa-fw"></i>
+        </button>
+        <button type="button" class="sniffer btn btn-default btn-xs" aria-expanded="true" data-toggle="tooltip" data-placement="bottom" title="" data-original-title="RF History">
+            <i class="fa fa-history"></i>
+        </button>
+    </div>
+    <div class="pull-right toolbar">
+        <button type="button" class="expandAll btn btn-default btn-xs" aria-expanded="true" data-toggle="tooltip" data-placement="bottom" title="" data-original-title="Expand all">
+            <i class="fa fa-expand fa-fw"></i>
+        </button>
+        <button type="button" class="closeAll btn btn-default btn-xs" aria-expanded="true" data-toggle="tooltip" data-placement="bottom" title="" data-original-title="Close all">
+            <i class="fa fa-compress fa-fw"></i>
+        </button>
+    </div>
+    <hr/>
+</div>
+
+<div class="animated fadeIn list-group">
+    {% for button in buttons %}
+        {% if button.visible %}
+            <div class="collapse-card list-group-item">
+                <div class="title">
+                    <h3><i class="{{button.icon}} fa-fw fa-1x"></i> {{button.name}}</h3>
+                </div>
+                <div class="body well" style="color: #222222;">
+                    <ul class="nav nav-pills" role="tablist" style="margin-bottom: 6px;">
+                        <li role="presentation" class="active"><a href="#commands{{button.id}}" aria-controls="commands{{button.id}}" role="tab" data-toggle="tab"><i class="fa fa-power-off"></i></a></li>
+                        <li role="presentation"><a href="#timer{{button.id}}" aria-controls="timer{{button.id}}" role="tab" data-toggle="tab"><i class="fa fa-clock-o"></i></a></li>
+                        <li role="presentation"><a href="#schedule{{button.id}}" id="viewSchedule{{button.id}}" class="viewSchedule" data-button-id="{{button.id}}" aria-controls="schedule{{button.id}}" role="tab" data-toggle="tab"><i class="fa fa-calendar"></i></a></li>
+                    </ul>
+                     <div class="tab-content">
+                        <div role="tabpanel" class="tab-pane fade in active well well-sm" id="commands{{button.id}}">
+                            <h5>Select Command:<h5>
+                            <div class="btn-group">
+                                {% for command in button.commands %}
+                                    <button type="button" data-button-name="{{button.name}}" data-button-id="{{button.id}}" data-command-name="{{command.name}}" class="btn btn-{{command.style}} power-btn"><i class="fa fa-play-circle-o"></i> {{command.name}}</button>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div role="tabpanel" class="tab-pane fade well well-sm" id="timer{{button.id}}">
+                            <div class="step1">
+                                <h5>Select Delayed Command:<h5>
+                                <div class="btn-group">
+                                    {% for command in button.commands %}
+                                        <button type="button" data-button-name="{{button.name}}" data-button-id="{{button.id}}" data-command-name="{{command.name}}" class="btn btn-{{command.style}} power-btn-delayed"><i class="fa fa-clock-o"></i> {{command.name}}</button>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="step2 hidden">
+                                <h5>Selected Command:<h5>
+                                <div class="selectedCommand"></div>
+                                <h5>Set Time:<h5>
+                                <div class="input-group" style="width: 120px;">
+                                    <input type="text" class="form-control schedule-time clockpicker">
+                                    <span class="input-group-addon hourmin" style="cursor:pointer;">
+                                        <span class="glyphicon glyphicon-time"></span>
+                                    </span>
+                                </div>
+                                <div class="checkbox">
+                                    <label>
+                                        <input type="checkbox" name="deleteWhenDone" value="" checked>Run Once
+                                    </label>
+                                </div>
+                                <br/>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-success schedule-submit"><i class="fa fa-check-circle-o"></i> Schedule</button>
+                                    <button type="button" class="btn btn-danger schedule-cancel"><i class="fa fa-times-circle-o"></i> Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div role="tabpanel" class="table-responsive tab-pane fade well well-sm" id="schedule{{button.id}}">
+                            <table id="jobsTable{{button.id}}" data-button-id="{{button.id}}" class="table display jobsTable" cellspacing="0" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 36px;"></th>
+                                        <th>Command</th>
+                                        <th>Next Run</th>
+                                        <th>Repeats</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/scripts/paper-collapse.min.js"></script>
+<script src="/static/scripts/bootstrap-clockpicker.min.js"></script>
+<script src="/static/scripts/jquery.dataTables.min.js"></script>
+<script src="/static/scripts/dataTables.bootstrap.min.js"></script>
+<script src="/static/scripts/roundslider.min.js"></script>
+<script src="/static/scripts/jquery.longpress.js"></script>
+<script type="text/javascript" charset="utf-8">
+    $(document).ready(function () {
+        var initHoursMinSelector = function() {
+            var updateTimeDisplay = function(args)
+            {
+                clearTimeout($('.hm_container .display').data('windowTimeout'))
+                $('.hm_container .display').data('windowTimeout', setTimeout(function(){ $('.hm_container .display').html($(".hm_container .hours").roundSlider('getValue')+' Hours, '+$(".hm_container .mins").roundSlider('getValue')+' Mins');}, 10));
+            };
+            $(".hm_container .hours").roundSlider({
+                sliderType: "min-range",
+                handleShape: "round",
+                width: 16,
+                radius: 120,
+                value: 0,
+                step: 1,
+                max: 23,
+                circleShape: "half-top",
+                showTooltip: false,
+                drag: updateTimeDisplay,
+                change: updateTimeDisplay,
+                handleSize: '+18'
+            });
+            $(".hm_container .mins").roundSlider({
+                sliderType: "min-range",
+                handleShape: "round",
+                startAngle: 90,
+                width: 16,
+                radius: 90,
+                value: 15,
+                step: 1,
+                max: 59,
+                showTooltip: false,
+                drag: updateTimeDisplay,
+                change: updateTimeDisplay,
+                handleSize: '+18'
+            });
+        };
+        $(".power-btn").longpress(function(){
+            bootbox.dialog({
+                        className: 'hm_dialog',
+                        title: 'Hours/Minutes from Now',
+                        message: '<div class="hm_container">'
+                                +'  <div class="hours"></div>'
+                                +'  <div class="mins"></div>'
+                                +'  <div class="display">0 Hours, 15 Mins</div>'
+                                +'</div>',
+                        buttons: {
+                                cancel: {
+                                  label: "Cancel",
+                                  className: "btn-default",
+                                  callback: function() {}
+                                },
+                                ok: {
+                                  label: "OK",
+                                  className: "btn-primary",
+                                  callback: function() {
+                                      hours = $(".hm_container .hours").roundSlider('getValue');
+                                      mins = $(".hm_container .mins").roundSlider('getValue');
+                                      date = new Date();
+                                      date.setHours(date.getHours()+hours);
+                                      date.setMinutes(date.getMinutes()+mins);
+                                      $.ajax({
+                                            type: "POST",
+                                            dataType: 'json',
+                                            url: '/schedule/button/' + $(this).data('button-name') + '/' + $(this).data('command-name'),
+                                            data: JSON.stringify({
+                                                time: date.getHours()+':'+date.getMinutes(),
+                                                deleteWhenDone: true
+                                            })
+                                        })
+                                        .fail(function () { bootbox.alert('Unable to schedule command.');})
+                                        .success(function() {
+                                            $('#viewSchedule'+$(this).data('button-id')).tab('show');
+                                            $('#jobsTable'+$(this).data('button-id')).data('table').api().ajax.reload();
+                                            setTimeout(setupScheduleButtons, 500);
+                                        }.bind(this));
+                                  }.bind(this)
+                                }
+                            }
+                    });
+            initHoursMinSelector();
+        }, function (event) {
+            $.ajax({
+                type: "POST",
+                url: '/button/' + $(this).data('button-name') + '/' + $(this).data('command-name')
+            }).fail(function () { bootbox.alert('Unable to process command.');})
+        });
+        
+        $('.clockpicker').clockpicker({
+            autoclose: true,
+            donetext: 'Ok'
+        }).on('blur', function(){$(this).clockpicker('hide');});
+        
+        $('.well').css('cursor', 'initial').click(function (event) {
+            event.stopPropagation();
+        })
+        
+        $('.power-btn-delayed').on('click', function(event){
+            parent = $(this).closest('.body');
+            parent.find('input[type=text]').val('');
+            parent.find('input[type=checkbox]').prop( "checked", true );
+            parent.find('.selectedCommand').html('');
+            $(this).clone().removeClass('power-btn-delayed').prop('disabled', true).appendTo(parent.find('.selectedCommand'));
+            parent.find('.step1').addClass('hidden');
+            parent.find('.step2')
+                .removeClass('hidden')
+                .data('button-name', $(this).data('button-name'))
+                .data('button-id', $(this).data('button-id'))
+                .data('command-name', $(this).data('command-name'))
+                ;
+        });
+        
+        $('.schedule-cancel').on('click', function(event){
+            parent = $(this).closest('.body');
+            parent.find('.step1').removeClass('hidden');
+            parent.find('.step2').addClass('hidden');
+        });
+        $(".schedule-submit").on('click', function (event) {
+            if (parent.find('input[type=text]').val() == '') {
+                bootbox.alert('You must specify a time.');
+            }
+            else {
+                parent = $(this).closest('.body');
+                parent.find('.step1').removeClass('hidden');
+                parent.find('.step2').addClass('hidden');
+                $.ajax({
+                    type: "POST",
+                    dataType: 'json',
+                    url: '/schedule/button/' + parent.find('.step2').data('button-name') + '/' + parent.find('.step2').data('command-name'),
+                    data: JSON.stringify({
+                        time: parent.find('input[type=text]').val(),
+                        deleteWhenDone: parent.find('input[type=checkbox]').is(':checked')
+                    })
+                })
+                .fail(function () { bootbox.alert('Unable to schedule command.');})
+                .success(function() {
+                    $('#viewSchedule'+this).tab('show');
+                    $('#jobsTable'+this).data('table').api().ajax.reload();
+                    setTimeout(setupScheduleButtons, 500);
+                }.bind(parent.find('.step2').data('button-id')));
+            }
+        });
+        
+        function setupScheduleButtons(){
+            $('.dropdown-toggle').dropdown();
+            $('.btn-run').on('click', function(){
+                bootbox.confirm('Are you sure you want to run this job now?', function(result) {
+                    if (result) {
+                        $.ajax({
+                            type: "POST",
+                            dataType: 'json',
+                            data: JSON.stringify({
+                                job_id: $(this).data('id')
+                            }),
+                            url: '{{url_for('JobController:runJob')}}'
+                        })
+                        .success(function() {
+                            $('#jobsTable'+this).data('table').api().ajax.reload();
+                            setTimeout(setupScheduleButtons, 500);
+                        }.bind($(this).data('button-id')))
+                        .fail(function () {
+                            bootbox.alert('Unable to manually run job.');
+                        });
+                    }
+                }.bind(this));
+            });
+            $('.btn-resume').on('click', function(){
+                bootbox.confirm('Are you sure you want to resume this job?', function(result) {
+                    if (result) {
+                        $.ajax({
+                            type: "POST",
+                            dataType: 'json',
+                            data: JSON.stringify({
+                                job_id: $(this).data('id')
+                            }),
+                            url: '{{url_for('JobController:resumeJob')}}'
+                        })
+                        .success(function() {
+                            $('#jobsTable'+this).data('table').api().ajax.reload();
+                            setTimeout(setupScheduleButtons, 500);
+                        }.bind($(this).data('button-id')))
+                        .fail(function () {
+                            bootbox.alert('Unable to resume job.');
+                        });
+                    }
+                }.bind(this));
+            });
+            $('.btn-pause').on('click', function(){
+                bootbox.confirm('Are you sure you want to pause this job?', function(result) {
+                    if (result) {
+                        $.ajax({
+                            type: "POST",
+                            dataType: 'json',
+                            data: JSON.stringify({
+                                job_id: $(this).data('id')
+                            }),
+                            url: '{{url_for('JobController:pauseJob')}}'
+                        })
+                        .success(function() {
+                            $('#jobsTable'+this).data('table').api().ajax.reload();
+                            setTimeout(setupScheduleButtons, 500);
+                        }.bind($(this).data('button-id')))
+                        .fail(function () {
+                            bootbox.alert('Unable to pause job.');
+                        });
+                    }
+                }.bind(this));
+            });
+            $('.btn-remove').on('click', function(){
+                bootbox.confirm('Are you sure you want to remove this job?', function(result) {
+                    if (result) {
+                        $.ajax({
+                            type: "POST",
+                            dataType: 'json',
+                            data: JSON.stringify({
+                                job_id: $(this).data('id')
+                            }),
+                            url: '{{url_for('JobController:removeJob')}}'
+                        })
+                        .success(function() {
+                            $('#jobsTable'+this).data('table').api().ajax.reload();
+                            setTimeout(setupScheduleButtons, 500);
+                        }.bind($(this).data('button-id')))
+                        .fail(function () {
+                            bootbox.alert('Unable to remove job.');
+                        });
+                    }
+                }.bind(this));
+            });
+        }
+        
+        jQuery.each($('.jobsTable'), function(i, val){
+            $(val).data('table', $(val).dataTable({
+                "bProcessing": true,
+                "sDom": '<"top"i>rt<"bottom"p><"clear">',
+                "order": [[ 1, "desc" ]],
+                "aoColumns": [
+                  { bSortable: false },
+                  null,
+                  null,
+                  null
+                ],
+                "ajax": {
+                    "url": '{{url_for('get_jobs')}}',
+                    "dataSrc": function ( json ) {
+                      data = [];
+                      for ( var i=0, ien=json.length ; i<ien ; i++ ) {
+                        if (json[i].id.indexOf("' (ID: "+$(val).data('button-id')+"); Command '") > -1){
+                            name = json[i].id.substring(json[i].id.indexOf("); Command '")+12);
+                            name = name.substring(0, name.indexOf("' (ID: "));
+                            buttons = '<div class="dropdown"><button class="btn btn-primary dropdown-toggle btn-xs" type="button" data-toggle="dropdown"><i class="fa fa-ge"></i> <span class="caret"></span></button><ul class="dropdown-menu">'
+                            buttons = buttons+'<li><a data-button-id="'+$(val).data('button-id')+'" data-id="'+json[i].id+'" class="btn-run">Run Now</a></li>';
+                            if (json[i].next_run_time == 'None')
+                                
+                                   buttons = buttons+'<li><a data-button-id="'+$(val).data('button-id')+'" data-id="'+json[i].id+'" class="btn-resume">Resume</a></li>';
+                            else
+                                   buttons = buttons+'<li><a data-button-id="'+$(val).data('button-id')+'" data-id="'+json[i].id+'" class="btn-pause">Pause</a></li>';
+                            buttons = buttons+'<li><a data-button-id="'+$(val).data('button-id')+'" data-id="'+json[i].id+'" class="btn-remove">Remove</a></li>';
+                            repeats = "Yes";
+                            if (json[i].args[2]) repeats = "No";
+                            data.push(
+                                [
+                                    buttons+'</ul></div>',
+                                    name, 
+                                    json[i].next_run_time,
+                                    repeats
+                                ]);
+                        }
+                      }
+                      return data;
+                    }
+                },
+                "fnInitComplete": function() {
+                    setupScheduleButtons()
+                }
+            }));
+        });
+        
+        $('.viewSchedule').on('click', function(event) {
+            id = $(this).data('button-id');
+            $('#jobsTable'+id).data('table').api().ajax.reload();
+            setTimeout(setupScheduleButtons, 500);
+        });
+        
+        $('.manage').on('click', function() {
+            window.location.href = "{{url_for('ManageController:index')}}";
+        });
+        $('.sniffer').on('click', function() {
+            window.location.href = "{{url_for('SnifferController:index')}}";
+        });
+        $('.closeAll').on('click', function() {
+            $('.collapse-card.active').click();
+        });
+        $('.expandAll').on('click', function() {
+            $('.collapse-card:not(.active)').click();
+        });
+    
+        $('.collapse-card').paperCollapse();
+        
+        $('.nav-pills a').click(function (event) {
+            event.preventDefault();
+            $(this).tab('show');
+        });      
+        $('.hourmin').on('click', function(){
+            bootbox.dialog({
+                        className: 'hm_dialog',
+                        title: 'Hours/Minutes from Now',
+                        message: '<div class="hm_container">'
+                                +'  <div class="hours"></div>'
+                                +'  <div class="mins"></div>'
+                                +'  <div class="display">0 Hours, 15 Mins</div>'
+                                +'</div>',
+                        buttons: {
+                                cancel: {
+                                  label: "Cancel",
+                                  className: "btn-default",
+                                  callback: function() {}
+                                },
+                                ok: {
+                                  label: "OK",
+                                  className: "btn-primary",
+                                  callback: function() {
+                                      hours = $(".hm_container .hours").roundSlider('getValue');
+                                      mins = $(".hm_container .mins").roundSlider('getValue');
+                                      date = new Date();
+                                      date.setHours(date.getHours()+hours);
+                                      date.setMinutes(date.getMinutes()+mins);
+                                      hours = date.getHours().toString();
+                                      if (hours.length == 1) hours = '0'+hours;
+                                      mins = date.getMinutes().toString();
+                                      if (mins.length == 1) mins = '0'+mins;
+                                      $(this).val(hours+':'+mins)
+                                  }.bind($(this).parent().parent().find('input'))
+                                }
+                            }
+                    });
+           initHoursMinSelector();
+       });
+    });    
+</script>
+{% endblock %}

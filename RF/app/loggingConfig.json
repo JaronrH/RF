@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "simple": {
+      "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    }
+  },
+
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "level": "DEBUG",
+      "formatter": "simple",
+      "stream": "ext://sys.stdout"
+    },
+
+    "info_file_handler": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "level": "INFO",
+      "formatter": "simple",
+      "filename": "logs/info.log",
+      "maxBytes": 10485760,
+      "backupCount": 20,
+      "encoding": "utf8"
+    },
+
+    "Scheduler_handler": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "level": "INFO",
+      "formatter": "simple",
+      "filename": "logs/Scheduler.log",
+      "maxBytes": 10485760,
+      "backupCount": 20,
+      "encoding": "utf8"
+    },
+
+    "AutoLight_handler": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "level": "INFO",
+      "formatter": "simple",
+      "filename": "logs/AutoLight.log",
+      "maxBytes": 10485760,
+      "backupCount": 20,
+      "encoding": "utf8"
+    },
+
+    "error_file_handler": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "level": "ERROR",
+      "formatter": "simple",
+      "filename": "logs/errors.log",
+      "maxBytes": 10485760,
+      "backupCount": 20,
+      "encoding": "utf8"
+    }
+  },
+
+  "loggers": {
+
+    "AutoLight": {
+      "level": "INFO",
+      "handlers": [ "console", "AutoLight_handler", "error_file_handler" ]
+    },
+
+    "apscheduler.scheduler": {
+      "level": "INFO",
+      "handlers": [ "console", "Scheduler_handler", "error_file_handler" ]
+    },
+    
+    "apscheduler.executors.default": {
+      "level": "INFO",
+      "handlers": [ "console", "Scheduler_handler", "error_file_handler" ]
+    },
+
+    "root": {
+      "level": "INFO",
+      "handlers": [ "console", "info_file_handler", "error_file_handler" ]
+    }
+  }
+}
