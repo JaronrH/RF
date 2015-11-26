@@ -53,7 +53,7 @@ Made to run on Python 2.7  You run the application by calling
 
     [sudo] python RF.py console
 
-You can replace console with *status*, *start*, or *stop*.  This allows you to run in debug mode with console output or run as a damon on your pi (you can then use cron to start this at boottime).
+You can replace console with *status*, *start*, or *stop*.  This allows you to run in debug mode with console output or run as a damon on your pi (you can then use cron to start this at boottime).  You can then go to http://[ipaddress]:54321 to access the page (use the .conf file to change the port).
 
 **3rd Party Components that made this project possible!**
  - BootBox - http://bootboxjs.com/
